@@ -3,9 +3,9 @@
 
 #include <iostream>
 
-#include "AllocationTracker.h"
+#include "AssistantMemory.h"
 
-int main()
+int main(int argc, char** argv)
 {
 	AssistantMemory::AllocationTracker t;
 

@@ -6,7 +6,10 @@
 
 namespace AssistantMemory
 {
-	static constexpr bool CaptureAllocationStackTrace{ true };
+	//Configuration
+	//Should we capture a stack trace when allocating, useful for identifying where allocations have been made, severe performance penalty.
+	static constexpr bool CaptureAllocationStackTrace{ false };
+	//How much stack frames should we record when recording the allocation stack frames?
 	static constexpr int AllocationStackTraceMaxLength = 8;
 
 	class LeakDetectedException : public std::exception
