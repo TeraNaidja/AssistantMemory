@@ -207,46 +207,8 @@ bool AssistantMemory::AllocationTracker::ReportLeaks() const
 
 AssistantMemory::StackTrace AssistantMemory::StackTrace::Capture(int a_stackFramesToSkip)
 {
-	HANDLE currentProcess = GetCurrentProcess();
-	HANDLE currentThread = GetCurrentThread();
-	CONTEXT threadContext{};
-	
-	threadContext.ContextFlags = CONTEXT_FULL;
-	RtlCaptureContext(&threadContext);
-
-	constexpr int MachineType = IMAGE_FILE_MACHINE_AMD64;
-	STACKFRAME64 stackFrame{};
-
-	stackFrame.AddrPC.Mode = AddrModeFlat;
-	stackFrame.AddrPC.Offset = threadContext.Rip;
-
-	stackFrame.AddrFrame.Mode = AddrModeFlat;
-	stackFrame.AddrFrame.Offset = threadContext.Rbp;
-
-	stackFrame.AddrStack.Mode = AddrModeFlat;
-	stackFrame.AddrStack.Offset = threadContext.Rsp;
-
 	StackTrace result{};
-
-	int stackFrameIndex = 0;
-
-	while (StackWalk64(MachineType, currentProcess, currentThread, &stackFrame, &threadContext, nullptr, SymFunctionTableAccess64, SymGetModuleBase64, nullptr))
-	{
-		++stackFrameIndex;
-		if (stackFrameIndex - a_stackFramesToSkip == AllocationStackTraceMaxLength)
-		{
-			break;
-		}
-
-		if (stackFrameIndex <= a_stackFramesToSkip)
-		{
-			continue; //Don't capture this or the parent in the stacktrace. 
-		}
-
-		int captureFrameIndex = stackFrameIndex - a_stackFramesToSkip - 1;
-		result.m_stackTrace[captureFrameIndex] = stackFrame.AddrPC.Offset;
-	}
-
+	RtlCaptureStackBackTrace(a_stackFramesToSkip, AllocationStackTraceMaxLength, reinterpret_cast<void**>(result.m_stackTrace.data()), nullptr);
 	return result;
 }
 
@@ -264,6 +226,7 @@ void AssistantMemory::StackTrace::ResolveSymbols(std::vector<std::string>& a_cal
 	HANDLE currentProcess = GetCurrentProcess();
 
 	a_callFrames.reserve(AllocationStackTraceMaxLength);
+	a_callFrames.clear();
 
 	for (uint64_t stackFrame : m_stackTrace)
 	{
